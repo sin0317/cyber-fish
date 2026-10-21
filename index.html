@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="color-scheme" content="dark">
+<title>1024 · 赛博功德箱 | 电子木鱼</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🐟</text></svg>">
+<style>
+  :root{
+    --bg:#090c10;
+    --panel:#12171f;
+    --border:#2a3442;
+    --gold:#f2b544;
+    --gold2:#ffd97a;
+    --green:#40ff96;
+    --text:#e6edf3;
+    --dim:#8b98a8;
+  }
+  *{ margin:0; padding:0; box-sizing:border-box; }
+  html,body{ height:100%; }
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:"PingFang SC","Microsoft YaHei","Segoe UI",system-ui,sans-serif;
+    overflow-x:hidden;
+    min-height:100vh;
+    display:flex;
+    flex-direction:column;
+    padding-bottom:44px;
+    -webkit-tap-highlight-color:transparent;
+  }
+  #rain{ position:fixed; inset:0; z-index:0; opacity:.5; pointer-events:none; }
+  .vignette{ position:fixed; inset:0; z-index:5; pointer-events:none;
+    background:radial-gradient(ellipse at center, transparent 52%, rgba(0,0,0,.6)); }
+
+  main{
+    position:relative; z-index:10;
+    flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center;
+    padding:24px 16px 8px;
+    user-select:none; -webkit-user-select:none;
+  }
+
+  header{ text-align:center; }
+  h1{
+    font-size:clamp(26px,5vw,40px);
+    letter-spacing:.14em;
+    font-weight:800;
+    background:linear-gradient(180deg,var(--gold2),var(--gold) 60%,#b97c1e);
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+    text-shadow:0 0 40px rgba(242,181,68,.18);
+  }
+  h1 .dot{ color:var(--green); -webkit-text-fill-color:var(--green); }
+  .subtitle{
+    margin-top:10px;
+    font-family:"Courier New",monospace;
+    font-size:clamp(12px,2.4vw,15px);
+    color:var(--green);
+    min-height:1.5em;
+    text-shadow:0 0 12px rgba(64,255,150,.35);
+  }
+  .cursor{ display:inline-block; width:.55em; height:1.05em; background:var(--green);
+    vertical-align:-0.15em; margin-left:3px; animation:blink 1s steps(1) infinite; }
+  @keyframes blink{ 50%{ opacity:0; } }
+
+  .stats{ margin-top:18px; text-align:center; }
+  .merit{ font-size:15px; color:var(--dim); letter-spacing:.3em; }
+  .merit-num{
+    display:inline-block;
+    margin-left:10px;
+    font-family:"Courier New",monospace;
+    font-size:clamp(38px,8vw,58px);
+    font-weight:800; letter-spacing:.04em;
+    color:var(--gold2);
+    text-shadow:0 0 26px rgba(255,217,122,.35);
+    vertical-align:middle;
+    font-variant-numeric:tabular-nums;
+  }
+  .merit-num.pop{ animation:pop .18s ease-out; }
+  @keyframes pop{ 40%{ transform:scale(1.14); } }
+  .combo{
+    margin-top:2px; height:22px;
+    font-family:"Courier New",monospace;
+    font-size:15px; font-weight:700; color:var(--green);
+    opacity:0; transition:opacity .3s;
+    text-shadow:0 0 14px rgba(64,255,150,.5);
+  }
+
+  .stage{
+    position:relative;
+    width:min(68vw,330px);
+    margin-top:6px;
+    touch-action:manipulation;
+  }
+  .stage::before{
+    content:""; position:absolute; left:50%; top:52%;
+    width:150%; height:150%;
+    transform:translate(-50%,-50%);
+    background:radial-gradient(circle, rgba(242,181,68,.10), transparent 60%);
+    pointer-events:none;
+  }
+  .fish{
+    position:relative; width:100%; cursor:pointer;
+    filter:drop-shadow(0 14px 26px rgba(0,0,0,.55));
+    outline:none;
+  }
+  .fish svg{ display:block; width:100%; height:auto; }
+  .fish.hit{ animation:fishHit .22s ease-out; }
+  @keyframes fishHit{
+    0%{ transform:scale(1); }
+    30%{ transform:scale(.95,.9) translateY(4px); }
+    100%{ transform:scale(1); }
+  }
+  .mallet{
+    position:absolute; top:-7%; right:-5%;
+    width:42%; z-index:2; pointer-events:none;
+    transform-origin:70% 14%;
+    transform:rotate(-20deg);
+    filter:drop-shadow(0 6px 10px rgba(0,0,0,.45));
+  }
+  .mallet svg{ display:block; width:100%; height:auto; }
+  .mallet.hit{ animation:strike .22s ease-out; }
+  @keyframes strike{
+    0%{ transform:rotate(-20deg); }
+    35%{ transform:rotate(17deg); }
+    60%{ transform:rotate(5deg); }
+    100%{ transform:rotate(-20deg); }
+  }
+  .hint{ margin-top:14px; font-size:12px; color:#5d6876; letter-spacing:.2em; }
+
+  .blessing{
+    margin-top:12px;
+    min-height:1.7em;
+    font-size:clamp(14px,2.6vw,17px);
+    color:var(--gold2);
+    letter-spacing:.08em;
+    text-align:center;
+    transition:opacity .4s;
+    text-shadow:0 0 16px rgba(255,217,122,.25);
+  }
+  .blessing.fade{ opacity:0; }
+
+  .controls{ margin-top:18px; display:flex; gap:10px; flex-wrap:wrap; justify-content:center; }
+  .btn{
+    font-family:inherit; font-size:13px; letter-spacing:.1em;
+    color:var(--text);
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:8px;
+    padding:9px 16px;
+    cursor:pointer;
+    transition:border-color .2s, color .2s, transform .1s;
+  }
+  .btn:hover{ border-color:var(--gold); color:var(--gold2); }
+  .btn:active{ transform:translateY(1px); }
+  .btn.on{ border-color:var(--green); color:var(--green); }
+  .btn.danger:hover{ border-color:#ff6b6b; color:#ff6b6b; }
+
+  .meta{ margin-top:14px; font-size:12px; color:#5d6876; letter-spacing:.12em; }
+  .meta b{ color:var(--green); font-family:"Courier New",monospace; }
+
+  footer{
+    position:fixed; left:0; right:0; bottom:12px; z-index:10;
+    text-align:center; font-size:11px; color:#4a545f; letter-spacing:.25em;
+    pointer-events:none;
+  }
+
+  #banner{
+    position:fixed; left:50%; top:20%; z-index:60;
+    transform:translateX(-50%) scale(.75);
+    opacity:0; pointer-events:none;
+    text-align:center; white-space:nowrap;
+    padding:24px 48px;
+    background:rgba(9,12,16,.8);
+    border:1px solid rgba(242,181,68,.4);
+    border-radius:18px;
+    box-shadow:0 14px 50px rgba(0,0,0,.65), 0 0 60px rgba(242,181,68,.14);
+    backdrop-filter:blur(10px);
+    -webkit-backdrop-filter:blur(10px);
+    transition:opacity .28s, transform .28s cubic-bezier(.2,1.6,.4,1);
+  }
+  #banner.show{ opacity:1; transform:translateX(-50%) scale(1); }
+  #bannerMsg{
+    font-size:clamp(26px,5.4vw,46px); font-weight:800; letter-spacing:.1em;
+    color:var(--gold2);
+    text-shadow:0 0 34px rgba(242,181,68,.6), 0 2px 0 rgba(0,0,0,.4);
+  }
+  #bannerSub{ margin-top:8px; font-size:clamp(13px,2.2vw,17px); color:var(--dim); letter-spacing:.2em; }
+
+  #flash{
+    position:fixed; inset:0; z-index:55; pointer-events:none; opacity:0;
+    background:radial-gradient(circle at 50% 45%, rgba(255,219,130,.85), rgba(255,180,60,0) 62%);
+  }
+  #flash.go{ animation:flashGo .9s ease-out; }
+  @keyframes flashGo{ 0%{opacity:0;} 12%{opacity:.9;} 100%{opacity:0;} }
+
+  #floatLayer{ position:fixed; inset:0; z-index:70; pointer-events:none; overflow:hidden; }
+  .float{
+    position:fixed; transform:translate(-50%,-50%);
+    font-weight:700; font-size:18px; color:var(--gold2);
+    text-shadow:0 2px 10px rgba(0,0,0,.65);
+    pointer-events:none; white-space:nowrap;
+    animation:floatUp 1.15s ease-out forwards;
+  }
+  .float.crit{ color:#ffe9a8; font-size:23px; text-shadow:0 0 18px rgba(255,217,122,.8); }
+  .float.gold{ color:var(--gold2); }
+  .float.dim{ color:#6b7684; font-weight:400; font-size:13px; }
+  @keyframes floatUp{
+    0%{ opacity:0; transform:translate(-50%,-30%) scale(.6); }
+    12%{ opacity:1; }
+    100%{ opacity:0; transform:translate(calc(-50% + var(--drift,0px)), -190%) scale(1.05); }
+  }
+  .ripple{
+    position:fixed; width:170px; height:170px; border-radius:50%;
+    border:2px solid rgba(255,217,122,.85);
+    transform:translate(-50%,-50%);
+    pointer-events:none;
+    animation:rippleGo .55s ease-out forwards;
+  }
+  @keyframes rippleGo{
+    0%{ transform:translate(-50%,-50%) scale(.06); opacity:.9; }
+    100%{ transform:translate(-50%,-50%) scale(1); opacity:0; }
+  }
+  .confetti{
+    position:fixed; pointer-events:none;
+    font-family:"Courier New",monospace; font-weight:800; font-size:16px;
+    transform:translate(-50%,-50%);
+    animation:confettiFly 2.2s cubic-bezier(.15,.6,.4,1) forwards;
+    will-change:transform,opacity;
+  }
+  @keyframes confettiFly{
+    0%{ opacity:1; transform:translate(-50%,-50%) scale(.4) rotate(0deg); }
+    100%{ opacity:0; transform:translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(1.15) rotate(var(--rot)); }
+  }
+
+  .crawl-bug{
+    position:fixed; z-index:40;
+    font-size:34px; line-height:1;
+    background:none; border:none; cursor:pointer; padding:8px;
+    filter:drop-shadow(0 4px 8px rgba(0,0,0,.5));
+    animation:wiggle .45s ease-in-out infinite alternate;
+  }
+  @keyframes wiggle{
+    from{ transform:rotate(-9deg) translateY(0); }
+    to{ transform:rotate(9deg) translateY(-5px); }
+  }
+  .butterfly{
+    position:fixed; z-index:70; font-size:32px; pointer-events:none;
+    animation:flyUp 1.5s ease-out forwards;
+  }
+  @keyframes flyUp{
+    0%{ opacity:1; transform:translateY(0) rotate(0); }
+    100%{ opacity:0; transform:translateY(-150px) rotate(24deg); }
+  }
+
+  @media (max-width:480px){
+    .stage{ width:min(76vw,300px); }
+    footer{ letter-spacing:.12em; }
+  }
+</style>
+</head>
+<body>
+<canvas id="rain"></canvas>
+<div class="vignette"></div>
+
+<main>
+  <header>
+    <h1>1024 <span class="dot">·</span> 赛博功德箱</h1>
+    <p class="subtitle"><span id="typed"></span><span class="cursor"></span></p>
+  </header>
+
+  <section class="stats">
+    <div class="merit">功德<span id="meritNum" class="merit-num">0</span></div>
+    <div id="combo" class="combo"></div>
+  </section>
+
+  <section class="stage">
+    <div id="fish" class="fish" role="button" tabindex="0" aria-label="敲电子木鱼">
+      <svg viewBox="0 0 260 210" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <defs>
+          <radialGradient id="wood" cx="42%" cy="30%" r="88%">
+            <stop offset="0%" stop-color="#c47a33"/>
+            <stop offset="45%" stop-color="#9a5518"/>
+            <stop offset="100%" stop-color="#5e2f0b"/>
+          </radialGradient>
+          <linearGradient id="lip" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#7a3f10"/>
+            <stop offset="100%" stop-color="#3a1c05"/>
+          </linearGradient>
+          <radialGradient id="cushion" cx="50%" cy="30%" r="85%">
+            <stop offset="0%" stop-color="#8c2f2f"/>
+            <stop offset="100%" stop-color="#421313"/>
+          </radialGradient>
+        </defs>
+        <ellipse cx="130" cy="189" rx="88" ry="16" fill="url(#cushion)"/>
+        <ellipse cx="130" cy="185" rx="88" ry="13" fill="#c25a5a" opacity="0.28"/>
+        <path d="M130 18 C196 18 236 66 236 118 C236 161 196 186 130 186 C64 186 24 161 24 118 C24 66 64 18 130 18 Z" fill="url(#wood)"/>
+        <path d="M60 52 Q130 20 200 52" stroke="#00000042" stroke-width="5" fill="none" stroke-linecap="round"/>
+        <path d="M72 68 Q130 41 188 68" stroke="#00000030" stroke-width="4" fill="none" stroke-linecap="round"/>
+        <circle cx="130" cy="46" r="7" fill="#3a1c05"/>
+        <circle cx="127.6" cy="43.6" r="2.4" fill="#d89a55"/>
+        <path d="M52 122 C80 100 180 100 208 122 C180 146 80 146 52 122 Z" fill="url(#lip)" stroke="#2c1304" stroke-width="3"/>
+        <path d="M70 122 C92 110 168 110 190 122 C168 134 92 134 70 122 Z" fill="#160801"/>
+        <path d="M56 117 C84 97 176 97 204 117" stroke="#e0a55c" stroke-width="3" fill="none" opacity="0.75" stroke-linecap="round"/>
+        <ellipse cx="92" cy="56" rx="34" ry="15" fill="#ffffff" opacity="0.13" transform="rotate(-18 92 56)"/>
+        <ellipse cx="180" cy="152" rx="22" ry="9" fill="#000000" opacity="0.14" transform="rotate(-14 180 152)"/>
+      </svg>
+    </div>
+    <div id="mallet" class="mallet" aria-hidden="true">
+      <svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+        <line x1="88" y1="12" x2="42" y2="84" stroke="#8a5a2a" stroke-width="11" stroke-linecap="round"/>
+        <line x1="88" y1="12" x2="42" y2="84" stroke="#c08b4e" stroke-width="4" stroke-linecap="round"/>
+        <circle cx="35" cy="93" r="18" fill="#7c4a1c"/>
+        <circle cx="30" cy="88" r="6.5" fill="#caa06a"/>
+      </svg>
+    </div>
+  </section>
+
+  <p class="hint">点击木鱼 或 按空格键 敲击</p>
+  <p id="blessing" class="blessing"></p>
+
+  <section class="controls">
+    <button id="autoBtn" class="btn">摸鱼模式：关</button>
+    <button id="muteBtn" class="btn">🔊 音效开</button>
+    <button id="resetBtn" class="btn danger">清零重修</button>
+  </section>
+
+  <p class="meta">累计敲击 <b id="knockNum">0</b> 次 · 超度 Bug <b id="bugNum">0</b> 只</p>
+</main>
+
+<footer>1024 程序员节 · 愿世间没有 BUG</footer>
+
+<div id="banner"><div id="bannerMsg"></div><div id="bannerSub"></div></div>
+<div id="flash"></div>
+<div id="floatLayer"></div>
+
+<script>
+(function(){
+'use strict';
+var $ = function(s){ return document.querySelector(s); };
+
+/* ---------------- 状态与存储 ---------------- */
+var store = {
+  get: function(k, d){
+    try{ var v = localStorage.getItem(k); return v === null ? d : JSON.parse(v); }
+    catch(e){ return d; }
+  },
+  set: function(k, v){
+    try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){}
+  }
+};
+var state = {
+  merit:  store.get('cyber_merit', 0),
+  knocks: store.get('cyber_knocks', 0),
+  bugs:   store.get('cyber_bugs', 0),
+  combo: 0,
+  lastKnockAt: 0,
+  auto: false,
+  muted: store.get('cyber_muted', false)
+};
+function save(){
+  store.set('cyber_merit', state.merit);
+  store.set('cyber_knocks', state.knocks);
+  store.set('cyber_bugs', state.bugs);
+}
+
+/* ---------------- 音效（Web Audio 合成木鱼声） ---------------- */
+var actx = null;
+function ensureAudio(){
+  if(!actx){
+    var AC = window.AudioContext || window.webkitAudioContext;
+    if(AC) actx = new AC();
+  }
+  if(actx && actx.state === 'suspended') actx.resume();
+}
+function knockSound(pitch, vol){
+  pitch = pitch || 1; vol = vol || 1;
+  if(state.muted || !actx) return;
+  var t = actx.currentTime;
+  var baseF = 700 * pitch * (0.94 + Math.random() * 0.12);
+  var o = actx.createOscillator();
+  var g = actx.createGain();
+  o.type = 'sine';
+  o.frequency.setValueAtTime(baseF, t);
+  o.frequency.exponentialRampToValueAtTime(baseF * 0.72, t + 0.07);
+  g.gain.setValueAtTime(0.8 * vol, t);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + 0.2);
+  o.connect(g); g.connect(actx.destination);
+  o.start(t); o.stop(t + 0.22);
+  var len = Math.floor(actx.sampleRate * 0.025);
+  var buf = actx.createBuffer(1, len, actx.sampleRate);
+  var d = buf.getChannelData(0);
+  for(var i = 0; i < len; i++){ d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 1.6); }
+  var ns = actx.createBufferSource(); ns.buffer = buf;
+  var bp = actx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 2400 * pitch; bp.Q.value = 1.2;
+  var ng = actx.createGain();
+  ng.gain.setValueAtTime(0.35 * vol, t);
+  ng.gain.exponentialRampToValueAtTime(0.0001, t + 0.035);
+  ns.connect(bp); bp.connect(ng); ng.connect(actx.destination);
+  ns.start(t);
+}
+function fanfare(){
+  [1, 1.2, 1.5, 2].forEach(function(p, i){
+    setTimeout(function(){ knockSound(p, 0.85); }, i * 130);
+  });
+}
+
+/* ---------------- DOM ---------------- */
+var meritEl = $('#meritNum'), comboEl = $('#combo'), blessingEl = $('#blessing'),
+    fishEl = $('#fish'), malletEl = $('#mallet'), floatLayer = $('#floatLayer'),
+    bannerEl = $('#banner'), bannerMsg = $('#bannerMsg'), bannerSub = $('#bannerSub'),
+    flashEl = $('#flash'),
+    knocksEl = $('#knockNum'), bugsEl = $('#bugNum'),
+    autoBtn = $('#autoBtn'), muteBtn = $('#muteBtn'), resetBtn = $('#resetBtn');
+
+function render(){
+  meritEl.textContent = state.merit.toLocaleString('en-US');
+  knocksEl.textContent = state.knocks;
+  bugsEl.textContent = state.bugs;
+}
+function popMerit(){
+  meritEl.classList.remove('pop'); void meritEl.offsetWidth; meritEl.classList.add('pop');
+}
+function fishCenter(){
+  var r = fishEl.getBoundingClientRect();
+  return { x: r.left + r.width / 2, y: r.top + r.height * 0.4, h: r.height };
+}
+
+/* ---------------- 飘字 ---------------- */
+var FLOATS = [
+  ['功德+1', 40], ['Bug-1', 14], ['需求-1', 8], ['头发+1', 6], ['咖啡因+1', 6],
+  ['编译通过', 6], ['无 Warning', 5], ['一次通过', 5], ['周末+1', 4], ['准时下班', 3], ['年终奖+1', 2]
+];
+var FLOAT_TOTAL = FLOATS.reduce(function(s, f){ return s + f[1]; }, 0);
+function pickFloat(){
+  var r = Math.random() * FLOAT_TOTAL;
+  for(var i = 0; i < FLOATS.length; i++){
+    r -= FLOATS[i][1];
+    if(r < 0) return FLOATS[i][0];
+  }
+  return '功德+1';
+}
+function floatText(text, cls, x, y){
+  if(floatLayer.children.length > 45) return;
+  var el = document.createElement('span');
+  el.className = 'float' + (cls ? ' ' + cls : '');
+  el.textContent = text;
+  el.style.left = x + 'px';
+  el.style.top = y + 'px';
+  el.style.setProperty('--drift', (Math.random() * 80 - 40) + 'px');
+  floatLayer.appendChild(el);
+  setTimeout(function(){ el.remove(); }, 1250);
+}
+function ripple(x, y){
+  var r = document.createElement('div');
+  r.className = 'ripple';
+  r.style.left = x + 'px';
+  r.style.top = y + 'px';
+  floatLayer.appendChild(r);
+  setTimeout(function(){ r.remove(); }, 600);
+}
+
+/* ---------------- 祝福语 ---------------- */
+var BLESSINGS = [
+  '愿你提交的代码一次通过',
+  '愿需求文档尘埃落定，不再变更',
+  '愿你的 PR 秒过 Code Review',
+  '愿线上环境稳如老狗',
+  '愿 Stack Overflow 总有你要的答案',
+  '愿你的缓存全部命中，日志永远干净',
+  '愿世间没有 996，只有朝九晚五',
+  '愿你的 Bug 都能被超度为 Feature',
+  '愿你的部署永不回滚',
+  '愿命名不再是最难的事',
+  '愿你的发际线与代码行数无关',
+  '愿死锁与你不期不遇',
+  '愿生产环境与本地环境一模一样',
+  '愿你的工位永远有插座和咖啡',
+  '愿周五下午没有人找你',
+  '愿你的年终奖像递归一样层层叠加'
+];
+var currentB = -1;
+function setBlessing(text){
+  blessingEl.classList.add('fade');
+  setTimeout(function(){
+    blessingEl.textContent = text;
+    blessingEl.classList.remove('fade');
+  }, 400);
+}
+function nextBlessing(instant){
+  var i;
+  do { i = Math.floor(Math.random() * BLESSINGS.length); }
+  while(i === currentB && BLESSINGS.length > 1);
+  currentB = i;
+  if(instant) blessingEl.textContent = BLESSINGS[i];
+  else setBlessing(BLESSINGS[i]);
+}
+setInterval(function(){ nextBlessing(false); }, 7000);
+
+/* ---------------- 里程碑 ---------------- */
+var MILESTONES = [
+  { n: 64,    msg: '初窥门径 · 64 功德',    sub: 'Hello, World！' },
+  { n: 128,   msg: '渐入佳境 · 128 功德',   sub: '你的代码开始有了灵魂' },
+  { n: 256,   msg: '字节圆满 · 256 功德',   sub: '整整一个字节的功德' },
+  { n: 512,   msg: '功德深厚 · 512 功德',   sub: '半千功德，Bug 退散' },
+  { n: 1024,  msg: '1024 程序员节快乐！',   sub: '愿你的代码永远没有 Bug', special: true },
+  { n: 2048,  msg: '功德无量 · 2048 功德',  sub: '双倍功德，双倍快乐' },
+  { n: 4096,  msg: '代码飞升 · 4096 功德',  sub: '你的 PR 已被世界合并' },
+  { n: 8192,  msg: '超凡入圣 · 8192 功德',  sub: '人鱼合一，万物皆可对象' },
+  { n: 16384, msg: '陆地神仙 · 16384 功德', sub: '从此线上再无故障' }
+];
+var bannerTimer = null;
+function showBanner(msg, sub){
+  bannerMsg.textContent = msg;
+  bannerSub.textContent = sub || '';
+  bannerEl.classList.remove('show'); void bannerEl.offsetWidth;
+  bannerEl.classList.add('show');
+  clearTimeout(bannerTimer);
+  bannerTimer = setTimeout(function(){ bannerEl.classList.remove('show'); }, 2800);
+}
+function celebrate1024(){
+  showBanner('1024 程序员节快乐！', '愿你的代码永远没有 Bug');
+  fanfare();
+  flashEl.classList.remove('go'); void flashEl.offsetWidth; flashEl.classList.add('go');
+  var c = fishCenter();
+  var chars = ['0', '1', '0', '1', '1024', '1024', '✨', '💻'];
+  var palette = ['#ffd97a', '#40ff96', '#7cc7ff', '#ff8fa3'];
+  for(var i = 0; i < 110; i++){
+    var p = document.createElement('span');
+    p.className = 'confetti';
+    p.textContent = chars[Math.floor(Math.random() * chars.length)];
+    p.style.color = palette[Math.floor(Math.random() * palette.length)];
+    var ang = Math.random() * Math.PI * 2;
+    var dist = 120 + Math.random() * Math.min(window.innerWidth, window.innerHeight) * 0.42;
+    p.style.setProperty('--dx', (Math.cos(ang) * dist) + 'px');
+    p.style.setProperty('--dy', (Math.sin(ang) * dist - 60) + 'px');
+    p.style.setProperty('--rot', (Math.random() * 720 - 360) + 'deg');
+    p.style.left = c.x + 'px';
+    p.style.top = c.y + 'px';
+    p.style.animationDelay = (Math.random() * 0.15) + 's';
+    floatLayer.appendChild(p);
+    (function(el){ setTimeout(function(){ el.remove(); }, 2500); })(p);
+  }
+}
+function checkMilestone(prev, cur){
+  for(var i = 0; i < MILESTONES.length; i++){
+    var m = MILESTONES[i];
+    if(prev < m.n && cur >= m.n){
+      if(m.special) celebrate1024();
+      else { showBanner(m.msg, m.sub); fanfare(); }
+      setBlessing(m.sub);
+    }
+  }
+}
+
+/* ---------------- 敲击 ---------------- */
+function hitAnim(){
+  [fishEl, malletEl].forEach(function(el){
+    el.classList.remove('hit'); void el.offsetWidth; el.classList.add('hit');
+  });
+}
+function comboTick(){
+  if(state.combo >= 3){
+    var extra = '';
+    if(state.combo >= 100) extra = ' · 人鱼合一';
+    else if(state.combo >= 50) extra = ' · 手感火热';
+    comboEl.textContent = '连击 x' + state.combo + extra;
+    comboEl.style.opacity = 1;
+  } else {
+    comboEl.style.opacity = 0;
+  }
+}
+function doKnock(){
+  var now = performance.now();
+  if(now - state.lastKnockAt < 60) return;
+  state.combo = (now - state.lastKnockAt < 1200) ? state.combo + 1 : 1;
+  state.lastKnockAt = now;
+
+  ensureAudio();
+  knockSound();
+  hitAnim();
+
+  var prev = state.merit;
+  state.merit++;
+  state.knocks++;
+
+  var c = fishCenter();
+  if(Math.random() < 0.02){
+    state.merit += 9;
+    floatText('顿悟！功德+10', 'crit', c.x, c.y);
+  } else {
+    floatText(pickFloat(), '', c.x + (Math.random() * 90 - 45), c.y);
+  }
+  ripple(c.x, c.y + c.h * 0.12);
+  comboTick();
+  popMerit();
+  render();
+  save();
+  checkMilestone(prev, state.merit);
+}
+
+fishEl.addEventListener('pointerdown', function(e){
+  e.preventDefault();
+  doKnock();
+});
+window.addEventListener('keydown', function(e){
+  if(e.code === 'Space'){ e.preventDefault(); if(!e.repeat || true) doKnock(); }
+});
+window.addEventListener('keyup', function(e){
+  if(e.code === 'Space') e.preventDefault();
+});
+
+/* ---------------- 控制按钮 ---------------- */
+var autoTimer = null;
+autoBtn.addEventListener('click', function(){
+  state.auto = !state.auto;
+  autoBtn.textContent = '摸鱼模式：' + (state.auto ? '开' : '关');
+  autoBtn.classList.toggle('on', state.auto);
+  autoBtn.blur();
+  if(state.auto) autoTimer = setInterval(doKnock, 500);
+  else clearInterval(autoTimer);
+});
+function renderMute(){
+  muteBtn.textContent = state.muted ? '🔇 已静音' : '🔊 音效开';
+}
+muteBtn.addEventListener('click', function(){
+  state.muted = !state.muted;
+  store.set('cyber_muted', state.muted);
+  renderMute();
+  muteBtn.blur();
+});
+resetBtn.addEventListener('click', function(){
+  if(confirm('确定要清零重修吗？功德、敲击与超度记录将归零。')){
+    state.merit = 0; state.knocks = 0; state.bugs = 0; state.combo = 0;
+    save(); render();
+    comboEl.style.opacity = 0;
+  }
+  resetBtn.blur();
+});
+
+/* ---------------- Bug 超度事件 ---------------- */
+var bugActive = false;
+function scheduleBug(delay){
+  setTimeout(spawnBug, (typeof delay === 'number') ? delay : (30000 + Math.random() * 60000));
+}
+function spawnBug(){
+  if(bugActive || document.hidden){ scheduleBug(15000); return; }
+  bugActive = true;
+  var bug = document.createElement('button');
+  bug.className = 'crawl-bug';
+  bug.textContent = '🐛';
+  bug.setAttribute('aria-label', '线上 Bug，点击超度');
+  var fromLeft = Math.random() < 0.5;
+  var y = window.innerHeight * (0.55 + Math.random() * 0.25);
+  bug.style.top = y + 'px';
+  bug.style.left = fromLeft ? '-70px' : (window.innerWidth + 70) + 'px';
+  document.body.appendChild(bug);
+  var dur = 7000 + Math.random() * 4000;
+  requestAnimationFrame(function(){
+    requestAnimationFrame(function(){
+      if(!bug.isConnected) return;
+      bug.style.transition = 'left ' + dur + 'ms linear';
+      bug.style.left = fromLeft ? (window.innerWidth + 70) + 'px' : '-70px';
+    });
+  });
+  var escapeTimer = setTimeout(function(){
+    if(!bug.isConnected) return;
+    bug.remove();
+    bugActive = false;
+    floatText('Bug 逃逸了…', 'dim', fromLeft ? window.innerWidth - 130 : 130, y);
+    scheduleBug();
+  }, dur + 300);
+  bug.addEventListener('click', function(){
+    clearTimeout(escapeTimer);
+    var r = bug.getBoundingClientRect();
+    bug.remove();
+    bugActive = false;
+    var b = document.createElement('div');
+    b.className = 'butterfly';
+    b.textContent = '🦋';
+    b.style.left = r.left + 'px';
+    b.style.top = r.top + 'px';
+    document.body.appendChild(b);
+    setTimeout(function(){ b.remove(); }, 1600);
+    var prev = state.merit;
+    state.merit += 10;
+    state.bugs++;
+    floatText('超度成功！功德+10', 'gold', r.left + 20, r.top - 8);
+    knockSound(1.5, 0.7);
+    setTimeout(function(){ knockSound(2, 0.7); }, 120);
+    popMerit(); render(); save();
+    checkMilestone(prev, state.merit);
+    scheduleBug();
+  });
+}
+scheduleBug(18000 + Math.random() * 15000);
+
+/* ---------------- 二进制雨 ---------------- */
+var cv = $('#rain'), cx = cv.getContext('2d');
+var cols = 0, dropsY = [];
+function sizeRain(){
+  cv.width = window.innerWidth;
+  cv.height = window.innerHeight;
+  cols = Math.ceil(window.innerWidth / 18);
+  dropsY = [];
+  for(var i = 0; i < cols; i++) dropsY.push(Math.random() * -80);
+  cx.font = '15px "Courier New", monospace';
+}
+window.addEventListener('resize', sizeRain);
+sizeRain();
+var lastFrame = 0;
+function rainLoop(ts){
+  requestAnimationFrame(rainLoop);
+  if(ts - lastFrame < 50) return;
+  lastFrame = ts;
+  cx.fillStyle = 'rgba(9, 12, 16, 0.14)';
+  cx.fillRect(0, 0, cv.width, cv.height);
+  for(var i = 0; i < cols; i++){
+    var ch;
+    var r = Math.random();
+    if(r < 0.49) ch = '0';
+    else if(r < 0.98) ch = '1';
+    else ch = (Math.random() < 0.5) ? '2' : '4';
+    var x = i * 18, y = dropsY[i] * 18;
+    cx.fillStyle = 'rgba(64, 255, 150, ' + (0.35 + Math.random() * 0.3) + ')';
+    cx.fillText(ch, x, y);
+    dropsY[i]++;
+    if(y > cv.height && Math.random() > 0.975) dropsY[i] = 0;
+  }
+}
+requestAnimationFrame(rainLoop);
+
+/* ---------------- 副标题打字机 ---------------- */
+var subText = '> 敲电子木鱼 · 积赛博功德 · 超度线上 Bug';
+var typedEl = $('#typed');
+var ti = 0;
+var typeTimer = setInterval(function(){
+  typedEl.textContent = subText.slice(0, ++ti);
+  if(ti >= subText.length) clearInterval(typeTimer);
+}, 55);
+
+/* ---------------- 初始化 ---------------- */
+render();
+renderMute();
+nextBlessing(true);
+})();
+</script>
+</body>
+</html>
